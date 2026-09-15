@@ -14,7 +14,9 @@ import {
   Moon, 
   Code2, 
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Monitor,
+  FileCode
 } from 'lucide-react';
 import { StockLimits, ConnectionStatus } from '../types';
 import { sanitizeBinId } from '../utils/jsonbin';
@@ -31,6 +33,7 @@ interface SettingsViewProps {
   onClearCache: () => void;
   onUpdateStockLimits: (limits: StockLimits) => void;
   onDownloadStandaloneHtml: () => void;
+  onDownloadBatFile?: () => void;
   rawRecord?: any;
 }
 
@@ -46,6 +49,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onClearCache,
   onUpdateStockLimits,
   onDownloadStandaloneHtml,
+  onDownloadBatFile,
   rawRecord
 }) => {
   const [inputBinId, setInputBinId] = useState(binId);
@@ -386,6 +390,75 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <Download className="w-4 h-4" />
               <span>📥 FJK_CNC_Dashboard.html herunterladen</span>
             </button>
+          </div>
+        </div>
+
+        {/* Section 6: Windows Desktop App (.exe mit Electron) */}
+        <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950/40 border border-indigo-500/30 rounded-2xl p-5 sm:p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-indigo-400" />
+              <span>6. Windows Desktop App (.exe mit Electron)</span>
+            </h3>
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              Windows Installer &amp; Portable .EXE
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Du kannst das <strong>FJK CNC Dashboard</strong> mit der bereitgestellten Batch-Datei vollautomatisch als echte Windows-Desktop-Anwendung (<code className="text-indigo-300 font-mono">.exe</code>) mit Desktop-Icon oder als portable Version für USB-Sticks erstellen.
+          </p>
+
+          {/* Steps Overview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
+              <span className="text-indigo-400 font-bold text-xs block mb-1">Schritt 1: Node.js</span>
+              <p className="text-[11px] text-slate-400">
+                Stelle sicher, dass <strong>Node.js</strong> auf deinem Windows-Rechner installiert ist (kostenlos auf nodejs.org).
+              </p>
+            </div>
+            <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
+              <span className="text-indigo-400 font-bold text-xs block mb-1">Schritt 2: Batch ausführen</span>
+              <p className="text-[11px] text-slate-400">
+                Führe die Datei <strong className="text-slate-200">build-electron-app.bat</strong> per Doppelklick im Projektordner aus.
+              </p>
+            </div>
+            <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800">
+              <span className="text-indigo-400 font-bold text-xs block mb-1">Schritt 3: Fertige .exe</span>
+              <p className="text-[11px] text-slate-400">
+                Der Ordner <code className="text-slate-200 font-mono">release/</code> mit deiner fertigen Installationsdatei öffnet sich automatisch.
+              </p>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onDownloadBatFile}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95"
+            >
+              <Download className="w-4 h-4" />
+              <span>📥 build-electron-app.bat herunterladen</span>
+            </button>
+
+            <a
+              href="/build-electron-app.bat"
+              download="build-electron-app.bat"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition-colors"
+            >
+              <FileCode className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Direktlink .bat</span>
+            </a>
+          </div>
+
+          {/* Terminal Box */}
+          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-400">
+            <div className="text-slate-500 mb-1"># Manuell über Eingabeaufforderung / PowerShell:</div>
+            <div className="text-indigo-300">npm run electron:build</div>
+            <div className="text-slate-500 text-[10px] mt-1">
+              Erzeugt <span className="text-slate-300 font-mono">release/FJK CNC Dashboard Setup.exe</span>
+            </div>
           </div>
         </div>
 

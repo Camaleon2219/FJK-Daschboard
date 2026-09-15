@@ -3,12 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "clean": "rm -rf dist server.js release",
+    "lint": "tsc --noEmit",
+    "electron:start": "electron electron/main.cjs",
+    "electron:dev": "electron electron/main.cjs --dev",
+    "electron:build": "vite build && electron-builder --win nsis",
+    "electron:build:portable": "vite build && electron-builder --win portable",
+    "electron:build:all": "vite build && electron-builder --win nsis portable"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -31,5 +37,31 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
     "@types/express": "^4.17.21"
+  },
+  "build": {
+    "appId": "com.fjk.cncdashboard",
+    "productName": "FJK CNC Dashboard",
+    "copyright": "Copyright © 2026 FJK",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "FJK CNC Dashboard"
+    }
   }
 }

@@ -5,19 +5,26 @@ import { sanitizeBinId } from '../utils/jsonbin';
 interface ConnectionSetupProps {
   onConnect: (binId: string, readKey: string) => Promise<void>;
   onLoadDemo: () => void;
-  isLoading: boolean;
+  isLoading?: boolean;
   errorMessage?: string | null;
+  initialBinId?: string;
+  initialReadKey?: string;
 }
 
 export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
   onConnect,
   onLoadDemo,
-  isLoading,
-  errorMessage
+  isLoading = false,
+  errorMessage,
+  initialBinId = '',
+  initialReadKey = ''
 }) => {
-  const [binId, setBinId] = useState('');
-  const [readKey, setReadKey] = useState('');
+  const [binId, setBinId] = useState(initialBinId);
+  const [readKey, setReadKey] = useState(initialReadKey);
+  const [localLoading, setLocalLoading] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+
+  const isBusy = isLoading || localLoading;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +32,18 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
 
     const cleanId = sanitizeBinId(binId);
     if (!cleanId) {
-      setValidationError('Bitte gib eine gültige JSONBin Bin-ID ein.');
+      setValidationError('Bitte gib eine gültige JSONBin Bin-ID ein (z.B. 66a9246bffd5d1605309592b oder vollständige URL).');
       return;
     }
 
-    await onConnect(cleanId, readKey);
+    setLocalLoading(true);
+    try {
+      await onConnect(cleanId, readKey);
+    } catch (err: any) {
+      setValidationError(err.message || 'Verbindung konnte nicht hergestellt werden.');
+    } finally {
+      setLocalLoading(false);
+    }
   };
 
   return (
@@ -118,10 +132,10 @@ export const ConnectionSetup: React.FC<ConnectionSetupProps> = ({
 
           <button
             type="submit"
-            disabled={isLoading || !binId.trim()}
+            disabled={isBusy || !binId.trim()}
             className="w-full mt-2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-sm transition-all shadow-lg shadow-blue-600/25 active:scale-[0.99]"
           >
-            {isLoading ? (
+            {isBusy ? (
               <>
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
                 <span>Verbindung wird hergestellt...</span>

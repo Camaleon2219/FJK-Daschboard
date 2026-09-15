@@ -17,7 +17,7 @@ import {
 } from './utils/jsonbin';
 import { exportToolsToCsv, exportHistoryToCsv } from './utils/csvExport';
 import { DEMO_RECORD } from './utils/demoData';
-import { Tool, HistoryEntry, ConnectionStatus, DashboardConfig, StockLimits } from './types';
+import { Tool, HistoryEntry, ConnectionStatus, DashboardConfig, StockLimits, NavTab } from './types';
 import { Download, AlertTriangle } from 'lucide-react';
 
 export default function App() {
@@ -26,7 +26,7 @@ export default function App() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [rawRecord, setRawRecord] = useState<any>(null);
   
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'tools' | 'history' | 'stats' | 'settings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [status, setStatus] = useState<ConnectionStatus>('disconnected');
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -34,6 +34,12 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const autoRefreshTimerRef = useRef<number | null>(null);
+
+  // Total physical pieces count
+  const totalPieces = tools.reduce((sum, t) => {
+    const q = Number(t.quantity ?? t.bestand ?? t.stueck ?? 1);
+    return sum + (isNaN(q) || q < 0 ? 0 : q);
+  }, 0);
 
   // Initialize data loading
   const loadData = useCallback(async (isSilent = false) => {
@@ -207,6 +213,16 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  // Download Windows Batch file for Electron .EXE
+  const handleDownloadBatFile = () => {
+    const link = document.createElement('a');
+    link.href = '/build-electron-app.bat';
+    link.download = 'build-electron-app.bat';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Show setup if disconnected and no tools
   const showSetup = status === 'disconnected' && tools.length === 0;
 
@@ -215,13 +231,14 @@ export default function App() {
       {/* Main Header & Navigation */}
       <Navigation
         activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab)}
+        setActiveTab={setActiveTab}
         status={status}
-        lastUpdated={lastUpdated}
+        lastSyncTime={lastUpdated}
         onRefresh={() => loadData(false)}
         isRefreshing={isRefreshing}
-        toolsCount={tools.length}
-        historyCount={history.length}
+        totalTools={tools.length}
+        totalPieces={totalPieces}
+        binId={config.binId}
       />
 
       {/* Main Body */}
@@ -242,10 +259,11 @@ export default function App() {
         {showSetup ? (
           <ConnectionSetup
             onConnect={handleConnect}
-            onTestConnection={testJsonBinConnection}
             onLoadDemo={handleLoadDemo}
             initialBinId={config.binId}
             initialReadKey={config.readKey}
+            isLoading={isRefreshing || status === 'updating'}
+            errorMessage={errorMessage}
           />
         ) : (
           <>
@@ -254,8 +272,10 @@ export default function App() {
                 tools={tools}
                 history={history}
                 stockLimits={config.stockLimits}
+                setActiveTab={setActiveTab}
                 onSelectTool={(tool) => setSelectedTool(tool)}
-                onNavigate={(tab) => setActiveTab(tab)}
+                onExportTools={handleExportTools}
+                onExportHistory={handleExportHistory}
               />
             )}
 
@@ -264,18 +284,18 @@ export default function App() {
                 tools={tools}
                 stockLimits={config.stockLimits}
                 onSelectTool={(tool) => setSelectedTool(tool)}
-                onExportCSV={handleExportTools}
+                onExportCsv={handleExportTools}
               />
             )}
 
             {activeTab === 'history' && (
               <HistoryView
                 history={history}
-                onExportCSV={handleExportHistory}
+                onExportCsv={handleExportHistory}
               />
             )}
 
-            {activeTab === 'stats' && (
+            {activeTab === 'statistics' && (
               <StatisticsView
                 tools={tools}
                 history={history}
@@ -296,6 +316,7 @@ export default function App() {
                 onClearCache={handleClearCache}
                 onUpdateStockLimits={handleUpdateStockLimits}
                 onDownloadStandaloneHtml={handleDownloadStandaloneHtml}
+                onDownloadBatFile={handleDownloadBatFile}
                 rawRecord={rawRecord}
               />
             )}
@@ -325,6 +346,14 @@ export default function App() {
             >
               <Download className="w-3.5 h-3.5" />
               <span>FJK_CNC_Dashboard.html</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadBatFile}
+              className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>build-electron-app.bat</span>
             </button>
           </div>
         </div>
