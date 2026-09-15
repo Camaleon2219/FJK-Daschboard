@@ -1,0 +1,6 @@
+{
+  "name": "FJK CNC Dashboard",
+  "description": "Eigenständiges Read-Only Dashboard zur Übersicht, Analyse und Bestandsüberwachung von CNC-Werkzeugen über JSONBin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,1000 @@
+<!-- Standalone FJK CNC Dashboard Single File -->
+<!-- Please see /public/FJK_CNC_Dashboard.html for web asset -->
+<!-- This file can be saved or opened directly via browser -->
+<!DOCTYPE html>
+<html lang="de" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FJK CNC Dashboard</title>
+  <meta name="description" content="Eigenständiges Read-Only Dashboard zur CNC-Werkzeugverwaltung über JSONBin.">
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: #0f172a;
+      --bg-surface-alt: #1e293b;
+      --bg-input: #020617;
+      --border: #334155;
+      --border-light: #1e293b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: rgba(37, 99, 235, 0.15);
+      --success: #10b981;
+      --success-light: rgba(16, 185, 129, 0.15);
+      --warning: #f59e0b;
+      --warning-light: rgba(245, 158, 11, 0.15);
+      --danger: #ef4444;
+      --danger-light: rgba(239, 68, 68, 0.15);
+      --indigo: #6366f1;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .container { max-width: 1320px; margin: 0 auto; padding: 1rem; width: 100%; }
+    header.main-header {
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 40;
+    }
+    .header-content {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 1rem; padding: 0.75rem 0;
+    }
+    .brand-group { display: flex; align-items: center; gap: 0.75rem; }
+    .brand-logo {
+      width: 42px; height: 42px; background: linear-gradient(135deg, #2563eb, #4338ca);
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1.15rem; color: #fff; font-family: var(--font-mono);
+      letter-spacing: -0.05em; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    .brand-title { font-size: 1.25rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 0.5rem; }
+    .badge-readonly {
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+      background: rgba(37, 99, 235, 0.18); color: #60a5fa; padding: 2px 6px; border-radius: 4px;
+      border: 1px solid rgba(37, 99, 235, 0.3);
+    }
+    .header-status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
+    .status-connected { background: var(--success-light); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-updating { background: var(--warning-light); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .status-offline { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .status-error { background: var(--danger-light); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.5rem 1rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px;
+      border: 1px solid transparent; cursor: pointer; transition: all 0.15s ease; color: #fff;
+    }
+    .btn-primary { background: var(--primary); box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary { background: var(--bg-surface-alt); border-color: var(--border); color: var(--text-main); }
+    .btn-secondary:hover { background: #334155; }
+    .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; border-radius: 6px; }
+    .nav-bar { border-top: 1px solid rgba(255,255,255,0.06); display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.35rem 0; }
+    .nav-tab {
+      background: transparent; border: 1px solid transparent; color: var(--text-muted);
+      padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 600; border-radius: 8px;
+      cursor: pointer; display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; transition: all 0.15s;
+    }
+    .nav-tab:hover { color: var(--text-main); background: rgba(255,255,255,0.03); }
+    .nav-tab.active { color: #60a5fa; background: var(--bg-surface-alt); border-color: var(--border); }
+    .nav-tab-count { font-size: 0.7rem; padding: 1px 6px; border-radius: 9999px; background: var(--bg-base); color: #94a3b8; }
+    .nav-tab.active .nav-tab-count { background: rgba(37, 99, 235, 0.25); color: #93c5fd; }
+    .page-section { display: none; margin-top: 1.25rem; }
+    .page-section.active { display: block; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .kpi-card {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.15rem; position: relative; cursor: pointer; transition: transform 0.15s, border-color 0.15s;
+    }
+    .kpi-card:hover { border-color: #475569; transform: translateY(-2px); }
+    .kpi-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+    .kpi-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+    .kpi-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+    .kpi-value { font-size: 1.85rem; font-weight: 900; font-family: var(--font-mono); color: #fff; line-height: 1.1; }
+    .kpi-sub { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.35rem; }
+    .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+      margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-light);
+    }
+    .card-title { font-size: 1rem; font-weight: 700; color: #fff; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+    .search-input-wrap { flex: 1; min-width: 240px; position: relative; }
+    .search-input-wrap input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.6rem 0.9rem; color: #fff; font-size: 0.85rem; outline: none;
+    }
+    .search-input-wrap input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2); }
+    .filter-select { background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem 0.85rem; color: var(--text-main); font-size: 0.82rem; outline: none; }
+    .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-surface); }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.82rem; }
+    th {
+      background: #090e1a; color: var(--text-muted); font-weight: 700; text-transform: uppercase;
+      font-size: 0.7rem; letter-spacing: 0.05em; padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    td { padding: 0.7rem 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--text-main); }
+    tr.clickable:hover td { background: rgba(255,255,255,0.03); cursor: pointer; }
+    .font-mono { font-family: var(--font-mono); }
+    .dot-ampel { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+    .dot-green { background: #10b981; box-shadow: 0 0 6px #10b981; }
+    .dot-yellow { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+    .dot-red { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+    .qty-badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-family: var(--font-mono); font-weight: 700; font-size: 0.75rem; }
+    .qty-green { background: var(--success-light); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .qty-yellow { background: var(--warning-light); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .qty-red { background: var(--danger-light); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.3); }
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); backdrop-filter: blur(4px);
+      z-index: 50; display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: var(--bg-surface); border: 1px solid var(--border); border-radius: 16px;
+      max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+    }
+    .modal-header { padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; background: #0b1120; }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; background: #0b1120; }
+    .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .spec-box { background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.65rem 0.85rem; }
+    .spec-label { font-size: 0.7rem; text-transform: uppercase; color: var(--text-dim); font-weight: 700; display: block; margin-bottom: 2px; }
+    .spec-val { font-size: 0.95rem; font-weight: 700; color: #fff; }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-label { display: block; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.35rem; }
+    .form-input {
+      width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 8px; padding: 0.65rem 0.9rem; color: #fff; font-size: 0.9rem; font-family: var(--font-mono); outline: none;
+    }
+    .setup-banner {
+      background: linear-gradient(135deg, #1e293b, #0f172a); border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem; max-width: 580px; margin: 3rem auto; text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    @media (max-width: 768px) {
+      .header-content { flex-direction: column; align-items: flex-start; }
+      .brand-group { width: 100%; justify-content: space-between; }
+      .toolbar { flex-direction: column; align-items: stretch; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- App Header -->
+  <header class="main-header">
+    <div class="container">
+      <div class="header-content">
+        <div class="brand-group">
+          <div class="brand-logo">FJK</div>
+          <div>
+            <div class="brand-title">
+              FJK CNC Dashboard
+              <span class="badge-readonly">Read-Only</span>
+            </div>
+            <div class="header-status-line">
+              <span id="conn-status-badge" class="status-badge status-connected">
+                <span class="status-dot"></span>
+                <span id="conn-status-text">JSONBin Status: Verbunden</span>
+              </span>
+              <span>•</span>
+              <span id="last-update-text">Letzte Aktualisierung: –</span>
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button id="btn-refresh" class="btn btn-primary" title="Jetzt Daten aus JSONBin neu laden">
+            ↻ Aktualisieren
+          </button>
+        </div>
+      </div>
+      <nav class="nav-bar">
+        <button class="nav-tab active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="nav-tab" data-tab="tools">🔧 Werkzeuge <span id="nav-count-tools" class="nav-tab-count">0</span></button>
+        <button class="nav-tab" data-tab="history">📜 Historie <span id="nav-count-history" class="nav-tab-count">0</span></button>
+        <button class="nav-tab" data-tab="stats">📈 Statistiken</button>
+        <button class="nav-tab" data-tab="settings">⚙️ Einstellungen</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container" style="flex: 1;">
+    <!-- Initial Setup Screen -->
+    <div id="setup-screen" class="setup-banner" style="display: none;">
+      <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔩</div>
+      <h2 style="font-size: 1.5rem; font-weight: 800; color: #fff; margin-bottom: 0.25rem;">FJK CNC Dashboard</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Noch keine Datenquelle verbunden.</p>
+      <div style="text-align: left; margin-bottom: 1rem;">
+        <label class="form-label">BIN-ID *</label>
+        <input type="text" id="setup-bin-id" class="form-input" placeholder="z.B. 66a9246bffd5d1605309592b">
+      </div>
+      <div style="text-align: left; margin-bottom: 1.5rem;">
+        <label class="form-label">READ KEY (Optional)</label>
+        <input type="password" id="setup-read-key" class="form-input" placeholder="Bei privaten Bins hier eintragen">
+      </div>
+      <button id="btn-setup-connect" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-size: 0.95rem;">Verbinden</button>
+      <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+        <button id="btn-setup-demo" class="btn btn-secondary btn-sm">🔍 Beispieldaten ausprobieren (Demo-Modus)</button>
+      </div>
+    </div>
+
+    <!-- PAGE 1: DASHBOARD -->
+    <section id="page-dashboard" class="page-section active">
+      <div class="kpi-grid">
+        <div class="kpi-card" data-tab="tools">
+          <div class="kpi-header"><span class="kpi-title">Werkzeuge gesamt</span><div class="kpi-icon" style="background: rgba(37,99,235,0.15); color: #60a5fa;">🔧</div></div>
+          <div id="kpi-total-tools" class="kpi-value">0</div>
+          <div class="kpi-sub">Erfasste Werkzeugtypen</div>
+        </div>
+        <div class="kpi-card" data-tab="tools">
+          <div class="kpi-header"><span class="kpi-title">Gesamtbestand</span><div class="kpi-icon" style="background: rgba(99,102,241,0.15); color: #818cf8;">📦</div></div>
+          <div id="kpi-total-stock" class="kpi-value">0 <span style="font-size: 0.9rem; color: var(--text-muted);">Stk.</span></div>
+          <div class="kpi-sub">Physische Gesamtmenge</div>
+        </div>
+        <div class="kpi-card" data-tab="tools">
+          <div class="kpi-header"><span class="kpi-title">Verfügbar</span><div class="kpi-icon" style="background: var(--success-light); color: #34d399;">✅</div></div>
+          <div id="kpi-available" class="kpi-value" style="color: #34d399;">0</div>
+          <div class="kpi-sub">Einsatzbereite Werkzeuge</div>
+        </div>
+        <div class="kpi-card" data-tab="tools">
+          <div class="kpi-header"><span class="kpi-title" style="color: #fbbf24;">Kritischer Bestand</span><div class="kpi-icon" style="background: var(--warning-light); color: #fbbf24;">⚠️</div></div>
+          <div id="kpi-critical" class="kpi-value" style="color: #fbbf24;">0</div>
+          <div id="kpi-critical-sub" class="kpi-sub">Bestand ≤ 3 Stk.</div>
+        </div>
+        <div class="kpi-card" data-tab="history">
+          <div class="kpi-header"><span class="kpi-title">Historieneinträge</span><div class="kpi-icon" style="background: rgba(168,85,247,0.15); color: #c084fc;">📜</div></div>
+          <div id="kpi-history-count" class="kpi-value" style="color: #c084fc;">0</div>
+          <div class="kpi-sub">Änderungsprotokolle</div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.25rem;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">⚠️ Werkzeuge mit niedrigem Bestand</span><button class="btn btn-secondary btn-sm" onclick="switchTab('tools')">Alle Werkzeuge</button></div>
+          <div id="dashboard-critical-table" class="table-container"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">🕒 Letzte Aktivitäten (Historie)</span><button class="btn btn-secondary btn-sm" onclick="switchTab('history')">Gesamte Historie</button></div>
+          <div id="dashboard-history-list" class="table-container"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 2: WERKZEUGE -->
+    <section id="page-tools" class="page-section">
+      <div class="card">
+        <div class="toolbar">
+          <div class="search-input-wrap">
+            <input type="text" id="tools-search" placeholder="🔍 Werkzeug suchen (Name, Typ, Ø, Maschine, Lagerort)...">
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="tools-filter-cat" class="filter-select"><option value="Alle">Alle Kategorien</option></select>
+            <select id="tools-filter-status" class="filter-select">
+              <option value="Alle">Alle Status</option>
+              <option value="Verfügbar">Verfügbar</option>
+              <option value="Niedrig">Niedriger Bestand (≤ 3)</option>
+              <option value="Leer">Kein Bestand (0)</option>
+              <option value="In Maschine">In Maschine</option>
+              <option value="Verschlissen">Verschlissen</option>
+            </select>
+            <button id="btn-export-tools" class="btn btn-secondary btn-sm">📥 CSV Export</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="tools-table">
+            <thead>
+              <tr>
+                <th style="width: 40px; text-align: center;">Ampel</th>
+                <th>Werkzeug / Bezeichnung</th>
+                <th>Typ / Kategorie</th>
+                <th>Durchmesser</th>
+                <th>Länge</th>
+                <th style="text-align: right;">Bestand</th>
+                <th>Status</th>
+                <th>Maschine</th>
+                <th>Lagerort</th>
+                <th>Letzte Änderung</th>
+              </tr>
+            </thead>
+            <tbody id="tools-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3: HISTORIE -->
+    <section id="page-history" class="page-section">
+      <div class="card">
+        <div class="toolbar">
+          <div class="search-input-wrap">
+            <input type="text" id="history-search" placeholder="🔍 Historie durchsuchen (Benutzer, Werkzeug, Aktion)...">
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <select id="history-filter-user" class="filter-select"><option value="Alle">Alle Benutzer</option></select>
+            <select id="history-filter-action" class="filter-select"><option value="Alle">Alle Aktionen</option></select>
+            <button id="btn-export-history" class="btn btn-secondary btn-sm">📥 CSV Export</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="history-table">
+            <thead>
+              <tr>
+                <th>Datum &amp; Uhrzeit</th>
+                <th>Benutzer</th>
+                <th>Aktion</th>
+                <th>Werkzeug</th>
+                <th style="text-align: right;">Menge</th>
+                <th>Maschine</th>
+                <th>Details / Änderungen</th>
+              </tr>
+            </thead>
+            <tbody id="history-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 4: STATISTIKEN -->
+    <section id="page-stats" class="page-section">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1.25rem;">
+        <div class="card"><div class="card-header"><span class="card-title">Kategorie-Verteilung</span></div><div id="stats-category-list"></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">Meistbewegte Werkzeuge (Historie)</span></div><div id="stats-tools-list"></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">Aktivitäten pro Benutzer</span></div><div id="stats-user-list"></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">Werkzeuge pro Maschine</span></div><div id="stats-machine-list"></div></div>
+      </div>
+    </section>
+
+    <!-- PAGE 5: EINSTELLUNGEN -->
+    <section id="page-settings" class="page-section">
+      <div class="card" style="max-width: 760px; margin: 0 auto;">
+        <div class="card-header"><span class="card-title">⚙️ Konfiguration &amp; Verbindungen</span></div>
+        <form id="settings-form">
+          <div class="form-group">
+            <label class="form-label">JSONBin BIN-ID</label>
+            <input type="text" id="settings-bin-id" class="form-input" placeholder="z.B. 66a9246bffd5d1605309592b">
+          </div>
+          <div class="form-group">
+            <label class="form-label">JSONBin READ KEY (Optional)</label>
+            <input type="password" id="settings-read-key" class="form-input" placeholder="X-Master-Key / X-Access-Key">
+          </div>
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <button type="button" id="btn-test-conn" class="btn btn-secondary">⚡ Verbindung testen</button>
+            <button type="submit" class="btn btn-primary">Speichern &amp; Verbinden</button>
+            <button type="button" id="btn-disconnect" class="btn btn-secondary" style="color: #f87171;">Verbindung trennen</button>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 1.25rem;" class="form-group">
+            <label class="form-label">Automatische Aktualisierung</label>
+            <select id="settings-auto-refresh" class="filter-select" style="width: 100%;">
+              <option value="0">Aus</option>
+              <option value="30">30 Sekunden</option>
+              <option value="60">60 Sekunden</option>
+              <option value="300">5 Minuten</option>
+              <option value="900">15 Minuten</option>
+            </select>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 1.25rem;" class="form-group">
+            <label class="form-label">Bestandsgrenzwerte (STOCK_LIMITS)</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div>
+                <span style="font-size: 0.75rem; color: #fbbf24;">Niedriger Bestand (≤ Stk.)</span>
+                <input type="number" id="settings-stock-low" class="form-input" value="3" min="1">
+              </div>
+              <div>
+                <span style="font-size: 0.75rem; color: #f87171;">Kein Bestand (≤ Stk.)</span>
+                <input type="number" id="settings-stock-critical" class="form-input" value="0" min="0">
+              </div>
+            </div>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" id="btn-clear-cache" class="btn btn-secondary btn-sm" style="color: #f87171;">🗑️ Cache löschen</button>
+            <button type="button" id="btn-download-html" class="btn btn-secondary btn-sm">💾 Diese HTML-Datei exportieren</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Tool Detail Modal -->
+  <div id="tool-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <div id="modal-tool-icon" style="font-size: 1.75rem; margin-bottom: 0.25rem;">⚙️</div>
+          <h3 id="modal-tool-title" style="font-size: 1.15rem; font-weight: 800; color: #fff;">-</h3>
+          <p id="modal-tool-sub" style="font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono);">-</p>
+        </div>
+        <button id="modal-close-btn" class="btn btn-secondary btn-sm">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="spec-grid" id="modal-spec-grid"></div>
+        <div id="modal-notes-box" style="display: none; background: var(--bg-input); border: 1px solid var(--border-light); border-radius: 8px; padding: 0.85rem; font-family: var(--font-mono); font-size: 0.8rem; margin-bottom: 1rem;">
+          <strong style="color: var(--text-dim); display: block; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.25rem;">Notizen &amp; Schnittdaten</strong>
+          <span id="modal-notes-content"></span>
+        </div>
+        <div id="modal-extra-box" style="display: none;">
+          <strong style="color: var(--text-dim); display: block; font-size: 0.7rem; text-transform: uppercase; margin-bottom: 0.5rem;">Weitere vorhandene Felder</strong>
+          <div id="modal-extra-grid" class="spec-grid"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary btn-sm" onclick="closeModal()">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STOCK_LIMITS = { low: 3, critical: 0 };
+    let appData = { tools: [], history: [] };
+    let autoRefreshTimer = null;
+
+    const LS_BIN_ID = 'fjk_cnc_bin_id';
+    const LS_READ_KEY = 'fjk_cnc_read_key';
+    const LS_CACHE_TOOLS = 'fjk_cnc_cache_tools';
+    const LS_CACHE_HISTORY = 'fjk_cnc_cache_history';
+    const LS_CACHE_TIME = 'fjk_cnc_cache_time';
+    const LS_REFRESH = 'fjk_cnc_refresh_sec';
+    const LS_STOCK_LOW = 'fjk_cnc_stock_low';
+    const LS_STOCK_CRIT = 'fjk_cnc_stock_crit';
+
+    function esc(val) {
+      if (val === null || val === undefined || val === '') return '–';
+      const div = document.createElement('div');
+      div.textContent = String(val);
+      return div.innerHTML;
+    }
+    function cleanBinId(raw) {
+      if (!raw) return '';
+      const m = String(raw).trim().match(/([a-f0-9]{24})/i);
+      return m ? m[1].toLowerCase() : String(raw).trim();
+    }
+    function formatDate(str) {
+      if (!str) return '–';
+      try {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) return str;
+        return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      } catch { return str; }
+    }
+    function getAmpel(qty) {
+      const q = Number(qty ?? 0);
+      if (isNaN(q) || q <= STOCK_LIMITS.critical) return { dotClass: 'dot-red', badgeClass: 'qty-red', label: 'Kein Bestand' };
+      if (q <= STOCK_LIMITS.low) return { dotClass: 'dot-yellow', badgeClass: 'qty-yellow', label: 'Niedrig' };
+      return { dotClass: 'dot-green', badgeClass: 'qty-green', label: 'Ausreichend' };
+    }
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === tabId));
+      document.querySelectorAll('.page-section').forEach(s => s.classList.toggle('active', s.id === 'page-' + tabId));
+    }
+    function openModal(tool) {
+      const modal = document.getElementById('tool-modal');
+      document.getElementById('modal-tool-icon').textContent = tool.icon || '⚙️';
+      document.getElementById('modal-tool-title').textContent = tool.name || tool.bezeichnung || 'Unbenanntes Werkzeug';
+      document.getElementById('modal-tool-sub').textContent = [tool.manufacturer || tool.hersteller, tool.sku || tool.artikelnummer].filter(Boolean).join(' · ') || 'Keine Artikelnummer';
+
+      const known = [
+        { label: 'Kategorie', val: tool.category || tool.kategorie || tool.typ },
+        { label: 'Status', val: tool.status },
+        { label: 'Bestand', val: (tool.quantity ?? tool.bestand ?? tool.stueck ?? 0) + ' Stk.' },
+        { label: 'Durchmesser', val: (tool.diameter || tool.durchmesser) ? `Ø ${tool.diameter || tool.durchmesser} mm` : null },
+        { label: 'Schaft', val: (tool.shank || tool.schaft) ? `${tool.shank || tool.schaft} mm` : null },
+        { label: 'Länge', val: (tool.length || tool.laenge) ? `${tool.length || tool.laenge} mm` : null },
+        { label: 'Schneiden', val: tool.flutes || tool.schneiden },
+        { label: 'Z-Länge', val: (tool.zLength || tool.zLaenge) ? `${tool.zLength || tool.zLaenge} mm` : null },
+        { label: 'Beschichtung', val: tool.coating || tool.beschichtung },
+        { label: 'Schneidstoff', val: tool.material || tool.werkstoff },
+        { label: 'Kühlung', val: tool.coolant || tool.kuehlung },
+        { label: 'Maschine', val: tool.machine || tool.maschine },
+        { label: 'Lagerort', val: tool.location || tool.lagerort },
+        { label: 'Magazin-Platz', val: tool.magazine || tool.magazin },
+        { label: 'Halter', val: tool.holder || tool.halter },
+        { label: 'Letzte Änderung', val: formatDate(tool.updatedAt || tool.letzteAenderung) }
+      ];
+      document.getElementById('modal-spec-grid').innerHTML = known.map(s => `
+        <div class="spec-box"><span class="spec-label">${esc(s.label)}</span><span class="spec-val">${esc(s.val)}</span></div>
+      `).join('');
+
+      const notes = tool.notes || tool.notizen;
+      const notesBox = document.getElementById('modal-notes-box');
+      if (notes) {
+        document.getElementById('modal-notes-content').textContent = notes;
+        notesBox.style.display = 'block';
+      } else {
+        notesBox.style.display = 'none';
+      }
+
+      const knownKeys = new Set([
+        'id', 'name', 'bezeichnung', 'category', 'kategorie', 'typ', 'type',
+        'diameter', 'durchmesser', 'shank', 'schaft', 'length', 'laenge',
+        'flutes', 'schneiden', 'coating', 'beschichtung', 'material', 'werkstoff',
+        'manufacturer', 'hersteller', 'sku', 'artikelnummer', 'magazine', 'magazin',
+        'holder', 'halter', 'zLength', 'zLaenge', 'coolant', 'kuehlung',
+        'machine', 'maschine', 'location', 'lagerort', 'status',
+        'quantity', 'bestand', 'stueck', 'notes', 'notizen',
+        'updatedAt', 'letzteAenderung', 'updatedBy', 'icon', 'image', 'imageUrl',
+        'link', 'history'
+      ]);
+      const extraEntries = Object.entries(tool).filter(([k]) => !knownKeys.has(k) && !k.startsWith('_'));
+      const extraBox = document.getElementById('modal-extra-box');
+      if (extraEntries.length > 0) {
+        document.getElementById('modal-extra-grid').innerHTML = extraEntries.map(([k, v]) => `
+          <div class="spec-box"><span class="spec-label">${esc(k)}</span><span class="spec-val">${esc(typeof v === 'object' ? JSON.stringify(v) : v)}</span></div>
+        `).join('');
+        extraBox.style.display = 'block';
+      } else {
+        extraBox.style.display = 'none';
+      }
+      modal.classList.add('active');
+    }
+    function closeModal() { document.getElementById('tool-modal').classList.remove('active'); }
+
+    function renderDashboard() {
+      const tools = appData.tools || [];
+      const history = appData.history || [];
+      const totalTools = tools.length;
+      const totalPieces = tools.reduce((sum, t) => sum + (Number(t.quantity ?? t.bestand ?? t.stueck ?? 1) || 0), 0);
+      const available = tools.filter(t => {
+        const s = String(t.status || '').toLowerCase();
+        return s.includes('verfügbar') || s.includes('verfuegbar') || s.includes('neu');
+      }).length;
+      const critical = tools.filter(t => (Number(t.quantity ?? t.bestand ?? t.stueck ?? 0) || 0) <= STOCK_LIMITS.low);
+
+      document.getElementById('kpi-total-tools').textContent = totalTools;
+      document.getElementById('kpi-total-stock').innerHTML = `${totalPieces} <span style="font-size: 0.9rem; color: var(--text-muted);">Stk.</span>`;
+      document.getElementById('kpi-available').textContent = available;
+      document.getElementById('kpi-critical').textContent = critical.length;
+      document.getElementById('kpi-critical-sub').textContent = `Bestand ≤ ${STOCK_LIMITS.low} Stk.`;
+      document.getElementById('kpi-history-count').textContent = history.length;
+      document.getElementById('nav-count-tools').textContent = totalTools;
+      document.getElementById('nav-count-history').textContent = history.length;
+
+      const critBox = document.getElementById('dashboard-critical-table');
+      if (critical.length === 0) {
+        critBox.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Alle Bestände im grünen Bereich!</div>';
+      } else {
+        critBox.innerHTML = `
+          <table><thead><tr><th style="width: 30px;">Ampel</th><th>Werkzeug</th><th>Lagerort</th><th style="text-align: right;">Bestand</th></tr></thead>
+          <tbody>${critical.slice(0, 6).map(t => {
+            const q = Number(t.quantity ?? t.bestand ?? t.stueck ?? 0);
+            const amp = getAmpel(q);
+            return `<tr class="clickable" onclick='openModal(${JSON.stringify(t)})'>
+              <td><span class="dot-ampel ${amp.dotClass}"></span></td>
+              <td><strong>${esc(t.name || t.bezeichnung)}</strong></td>
+              <td class="font-mono">${esc(t.location || t.lagerort)}</td>
+              <td style="text-align: right;"><span class="qty-badge ${amp.badgeClass}">${q} Stk.</span></td>
+            </tr>`;
+          }).join('')}</tbody></table>`;
+      }
+
+      const histBox = document.getElementById('dashboard-history-list');
+      if (history.length === 0) {
+        histBox.innerHTML = '<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Keine Historiedaten gefunden.</div>';
+      } else {
+        histBox.innerHTML = `
+          <table><thead><tr><th>Zeitpunkt</th><th>Benutzer</th><th>Aktion / Werkzeug</th></tr></thead>
+          <tbody>${history.slice(0, 6).map(h => `
+            <tr>
+              <td class="font-mono" style="font-size: 0.75rem;">${formatDate(h.timestamp || h.zeitstempel || h.date)}</td>
+              <td><strong>${esc(h.userName || h.benutzer || h.user)}</strong></td>
+              <td><span style="color: #60a5fa;">${esc(h.action || h.aktion)}:</span> ${esc(h.toolName || h.werkzeug)}</td>
+            </tr>
+          `).join('')}</tbody></table>`;
+      }
+    }
+
+    function renderTools() {
+      const search = (document.getElementById('tools-search').value || '').toLowerCase().trim();
+      const cat = document.getElementById('tools-filter-cat').value;
+      const status = document.getElementById('tools-filter-status').value;
+
+      const filtered = (appData.tools || []).filter(t => {
+        if (search) {
+          const str = [t.name, t.bezeichnung, t.sku, t.artikelnummer, t.category, t.kategorie, t.diameter, t.durchmesser, t.machine, t.maschine, t.location, t.lagerort, t.manufacturer, t.hersteller].filter(Boolean).join(' ').toLowerCase();
+          if (!str.includes(search)) return false;
+        }
+        if (cat !== 'Alle' && (t.category || t.kategorie) !== cat) return false;
+        if (status !== 'Alle') {
+          const q = Number(t.quantity ?? t.bestand ?? t.stueck ?? 0);
+          const s = String(t.status || '').toLowerCase();
+          if (status === 'Verfügbar' && (!s.includes('verfügbar') && !s.includes('neu'))) return false;
+          if (status === 'Niedrig' && (q > STOCK_LIMITS.low || q <= STOCK_LIMITS.critical)) return false;
+          if (status === 'Leer' && q > STOCK_LIMITS.critical) return false;
+          if (status === 'In Maschine' && !s.includes('maschine')) return false;
+          if (status === 'Verschlissen' && !s.includes('verschlissen')) return false;
+        }
+        return true;
+      });
+
+      const tbody = document.getElementById('tools-tbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 2rem; color: var(--text-muted);">Keine Werkzeugdaten gefunden.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(t => {
+        const q = Number(t.quantity ?? t.bestand ?? t.stueck ?? 0);
+        const amp = getAmpel(q);
+        return `
+          <tr class="clickable" onclick='openModal(${JSON.stringify(t)})'>
+            <td style="text-align: center;"><span class="dot-ampel ${amp.dotClass}"></span></td>
+            <td>
+              <div style="font-weight: 700; color: #fff;">${t.icon ? t.icon + ' ' : ''}${esc(t.name || t.bezeichnung)}</div>
+              <div style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">${esc(t.sku || t.artikelnummer)}</div>
+            </td>
+            <td>${esc(t.category || t.kategorie || t.typ)}</td>
+            <td class="font-mono">${(t.diameter || t.durchmesser) ? `Ø ${t.diameter || t.durchmesser} mm` : '–'}</td>
+            <td class="font-mono">${(t.length || t.laenge) ? `${t.length || t.laenge} mm` : '–'}</td>
+            <td style="text-align: right;"><span class="qty-badge ${amp.badgeClass}">${q} Stk.</span></td>
+            <td>${esc(t.status)}</td>
+            <td>${esc(t.machine || t.maschine)}</td>
+            <td class="font-mono">${esc(t.location || t.lagerort)}</td>
+            <td class="font-mono" style="font-size: 0.75rem;">${formatDate(t.updatedAt || t.letzteAenderung)}</td>
+          </tr>`;
+      }).join('');
+    }
+
+    function renderHistory() {
+      const search = (document.getElementById('history-search').value || '').toLowerCase().trim();
+      const user = document.getElementById('history-filter-user').value;
+      const action = document.getElementById('history-filter-action').value;
+
+      const filtered = (appData.history || []).filter(h => {
+        if (search) {
+          const str = [h.userName, h.benutzer, h.user, h.action, h.aktion, h.toolName, h.werkzeug, h.details].filter(Boolean).join(' ').toLowerCase();
+          if (!str.includes(search)) return false;
+        }
+        if (user !== 'Alle' && (h.userName || h.benutzer || h.user) !== user) return false;
+        if (action !== 'Alle' && (h.action || h.aktion) !== action) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById('history-tbody');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">Keine Historiedaten gefunden.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filtered.map(h => `
+        <tr>
+          <td class="font-mono" style="font-size: 0.75rem;">${formatDate(h.timestamp || h.zeitstempel || h.date)}</td>
+          <td><strong>${esc(h.userName || h.benutzer || h.user)}</strong></td>
+          <td><span style="color: #60a5fa; font-weight: 600;">${esc(h.action || h.aktion)}</span></td>
+          <td>${esc(h.toolName || h.werkzeug)}</td>
+          <td class="font-mono" style="text-align: right;">${esc(h.quantity ?? h.menge)}</td>
+          <td>${esc(h.machine || h.maschine)}</td>
+          <td style="color: var(--text-muted);">${esc(h.details || (Array.isArray(h.changes) ? h.changes.join(' | ') : ''))}</td>
+        </tr>`).join('');
+    }
+
+    function renderStats() {
+      const tools = appData.tools || [];
+      const history = appData.history || [];
+
+      const catCounts = {};
+      tools.forEach(t => { const c = t.category || t.kategorie || 'Sonstige'; catCounts[c] = (catCounts[c] || 0) + 1; });
+      const catList = document.getElementById('stats-category-list');
+      catList.innerHTML = Object.keys(catCounts).length === 0 ? '<div style="color: var(--text-muted);">Nicht genügend Daten.</div>' :
+        Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).map(([c, n]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-light);">
+            <span>${esc(c)}</span><strong class="font-mono" style="color: #60a5fa;">${n} Werkzeuge</strong>
+          </div>`).join('');
+
+      const toolActs = {};
+      history.forEach(h => { const t = h.toolName || h.werkzeug; if (t) toolActs[t] = (toolActs[t] || 0) + 1; });
+      const toolList = document.getElementById('stats-tools-list');
+      toolList.innerHTML = Object.keys(toolActs).length === 0 ? '<div style="color: var(--text-muted);">Keine Daten.</div>' :
+        Object.entries(toolActs).sort((a,b)=>b[1]-a[1]).slice(0, 6).map(([t, n]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-light);">
+            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px;">${esc(t)}</span>
+            <strong class="font-mono" style="color: #fbbf24;">${n} Aktionen</strong>
+          </div>`).join('');
+
+      const userActs = {};
+      history.forEach(h => { const u = h.userName || h.benutzer || h.user; if (u) userActs[u] = (userActs[u] || 0) + 1; });
+      const userList = document.getElementById('stats-user-list');
+      userList.innerHTML = Object.keys(userActs).length === 0 ? '<div style="color: var(--text-muted);">Keine Daten.</div>' :
+        Object.entries(userActs).sort((a,b)=>b[1]-a[1]).map(([u, n]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-light);">
+            <span>👤 ${esc(u)}</span><strong class="font-mono" style="color: #c084fc;">${n} Einträge</strong>
+          </div>`).join('');
+
+      const machCounts = {};
+      tools.forEach(t => { const m = t.machine || t.maschine; if (m) machCounts[m] = (machCounts[m] || 0) + 1; });
+      const machList = document.getElementById('stats-machine-list');
+      machList.innerHTML = Object.keys(machCounts).length === 0 ? '<div style="color: var(--text-muted);">Keine Maschinenbelegungen.</div>' :
+        Object.entries(machCounts).sort((a,b)=>b[1]-a[1]).map(([m, n]) => `
+          <div style="display: flex; justify-content: space-between; padding: 0.4rem 0; border-bottom: 1px solid var(--border-light);">
+            <span>${esc(m)}</span><strong class="font-mono" style="color: #34d399;">${n} Werkzeuge</strong>
+          </div>`).join('');
+    }
+
+    function populateSelects() {
+      const cats = Array.from(new Set(appData.tools.map(t => t.category || t.kategorie).filter(Boolean))).sort();
+      const catSel = document.getElementById('tools-filter-cat');
+      const curCat = catSel.value;
+      catSel.innerHTML = '<option value="Alle">Alle Kategorien</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      if (cats.includes(curCat)) catSel.value = curCat;
+
+      const users = Array.from(new Set(appData.history.map(h => h.userName || h.benutzer || h.user).filter(Boolean))).sort();
+      const userSel = document.getElementById('history-filter-user');
+      const curUser = userSel.value;
+      userSel.innerHTML = '<option value="Alle">Alle Benutzer</option>' + users.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+      if (users.includes(curUser)) userSel.value = curUser;
+
+      const actions = Array.from(new Set(appData.history.map(h => h.action || h.aktion).filter(Boolean))).sort();
+      const actSel = document.getElementById('history-filter-action');
+      const curAct = actSel.value;
+      actSel.innerHTML = '<option value="Alle">Alle Aktionen</option>' + actions.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+      if (actions.includes(curAct)) actSel.value = curAct;
+    }
+
+    async function fetchJSONBin(silent = false) {
+      const binId = cleanBinId(localStorage.getItem(LS_BIN_ID));
+      const readKey = localStorage.getItem(LS_READ_KEY) || '';
+
+      if (!binId) {
+        document.getElementById('setup-screen').style.display = 'block';
+        document.querySelectorAll('.page-section').forEach(s => s.style.display = 'none');
+        return;
+      }
+      document.getElementById('setup-screen').style.display = 'none';
+
+      const statusBadge = document.getElementById('conn-status-badge');
+      const statusText = document.getElementById('conn-status-text');
+      statusBadge.className = 'status-badge status-updating';
+      statusText.textContent = 'Aktualisierung läuft...';
+
+      const url = `https://api.jsonbin.io/v3/b/${binId}/latest`;
+      const headers = { 'Content-Type': 'application/json' };
+      if (readKey) {
+        headers['X-Master-Key'] = readKey;
+        headers['X-Access-Key'] = readKey;
+      }
+
+      try {
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const json = await res.json();
+        const record = json.record || json;
+
+        appData.tools = Array.isArray(record.tools) ? record.tools : (Array.isArray(record.werkzeuge) ? record.werkzeuge : []);
+        appData.history = Array.isArray(record.history) ? record.history : (Array.isArray(record.historie) ? record.historie : []);
+
+        const now = new Date().toISOString();
+        localStorage.setItem(LS_CACHE_TOOLS, JSON.stringify(appData.tools));
+        localStorage.setItem(LS_CACHE_HISTORY, JSON.stringify(appData.history));
+        localStorage.setItem(LS_CACHE_TIME, now);
+
+        statusBadge.className = 'status-badge status-connected';
+        statusText.textContent = 'JSONBin Status: Verbunden';
+        document.getElementById('last-update-text').textContent = 'Letzte Aktualisierung: ' + formatDate(now);
+
+        populateSelects();
+        renderDashboard();
+        renderTools();
+        renderHistory();
+        renderStats();
+      } catch (err) {
+        const cachedTools = localStorage.getItem(LS_CACHE_TOOLS);
+        const cachedHist = localStorage.getItem(LS_CACHE_HISTORY);
+        const cachedTime = localStorage.getItem(LS_CACHE_TIME);
+
+        if (cachedTools) {
+          appData.tools = JSON.parse(cachedTools);
+          appData.history = cachedHist ? JSON.parse(cachedHist) : [];
+          statusBadge.className = 'status-badge status-offline';
+          statusText.textContent = 'Offline – zuletzt geladene Daten';
+          document.getElementById('last-update-text').textContent = 'Zuletzt: ' + formatDate(cachedTime);
+
+          populateSelects();
+          renderDashboard();
+          renderTools();
+          renderHistory();
+          renderStats();
+        } else {
+          statusBadge.className = 'status-badge status-error';
+          statusText.textContent = 'Verbindung fehlgeschlagen';
+          if (!silent) alert('Die Daten konnten nicht geladen werden.\nBitte überprüfe die BIN-ID und den Read-Key.');
+        }
+      }
+    }
+
+    function exportCSV(rows, filename) {
+      const bom = '\uFEFF';
+      const csv = bom + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function exportToolsCSV() {
+      const headers = ['ID', 'Bezeichnung', 'Kategorie', 'Status', 'Bestand', 'Durchmesser', 'Länge', 'Maschine', 'Lagerort', 'Hersteller', 'Art.-Nr.'];
+      const rows = [headers, ...(appData.tools || []).map(t => [
+        t.id, t.name || t.bezeichnung, t.category || t.kategorie, t.status,
+        t.quantity ?? t.bestand ?? t.stueck, t.diameter || t.durchmesser,
+        t.length || t.laenge, t.machine || t.maschine, t.location || t.lagerort,
+        t.manufacturer || t.hersteller, t.sku || t.artikelnummer
+      ])];
+      exportCSV(rows, `FJK_CNC_Werkzeuge_${new Date().toISOString().slice(0,10)}.csv`);
+    }
+
+    function exportHistoryCSV() {
+      const headers = ['Zeitpunkt', 'Benutzer', 'Aktion', 'Werkzeug', 'Menge', 'Maschine', 'Details'];
+      const rows = [headers, ...(appData.history || []).map(h => [
+        formatDate(h.timestamp || h.zeitstempel || h.date),
+        h.userName || h.benutzer || h.user,
+        h.action || h.aktion,
+        h.toolName || h.werkzeug,
+        h.quantity ?? h.menge,
+        h.machine || h.maschine,
+        h.details || (Array.isArray(h.changes) ? h.changes.join(' | ') : '')
+      ])];
+      exportCSV(rows, `FJK_CNC_Historie_${new Date().toISOString().slice(0,10)}.csv`);
+    }
+
+    function loadDemoData() {
+      appData = {
+        tools: [
+          { id: '1', name: 'VHM-Bohrer Ø6,0 mm lang', category: 'Bohrer', status: 'verfügbar', quantity: 5, diameter: '6.00', length: '57.0', machine: 'Hermle C40', location: 'Schublade A1', manufacturer: 'Gühring', sku: '5511-6.000', icon: '🔩' },
+          { id: '2', name: 'VHM-Fräser Ø10,0 mm Z4', category: 'Fräser', status: 'in Maschine', quantity: 2, diameter: '10.00', length: '72.0', machine: 'DMG DMU 50', location: 'Schublade B2', manufacturer: 'Sandvik', sku: '1P240', icon: '🌀' },
+          { id: '3', name: 'Planfräser Ø50 mm 45°', category: 'Planfräser', status: 'verfügbar', quantity: 3, diameter: '50.00', length: '40.0', machine: 'Hermle C40', location: 'Regal C3', manufacturer: 'Seco', sku: 'R220', icon: '⏹️' },
+          { id: '4', name: 'Gewindebohrer M8 6H', category: 'Gewindewerkzeuge', status: 'verfügbar', quantity: 1, diameter: '8.00', length: '90.0', machine: 'Matsuura VX', location: 'Schublade G1', manufacturer: 'Emuge', sku: 'B020', icon: '🔧' },
+          { id: '5', name: 'Radiusfräser Ø4,0 mm R2', category: 'Fräser', status: 'verschlissen', quantity: 0, diameter: '4.00', length: '50.0', machine: 'Hermle C40', location: 'Schublade B4', manufacturer: 'Garant', sku: '207120', icon: '⚪' }
+        ],
+        history: [
+          { timestamp: new Date().toISOString(), userName: 'G. Palacios', action: 'Bestand erhöht', toolName: 'VHM-Bohrer Ø6,0 mm lang', quantity: '+2 Stk.', machine: 'Hermle C40', details: 'Wareneingang 2x eingelagert' },
+          { timestamp: new Date(Date.now() - 3600000).toISOString(), userName: 'B. Daniel', action: 'In Maschine gerüstet', toolName: 'VHM-Fräser Ø10,0 mm Z4', quantity: '1 Stk.', machine: 'DMG DMU 50', details: 'Auf T04 eingewechselt' },
+          { timestamp: new Date(Date.now() - 7200000).toISOString(), userName: 'F. Klotz', action: 'Plattenwechsel', toolName: 'Planfräser Ø50 mm 45°', quantity: '5 Platten', machine: 'Hermle C40', details: 'Schneidkanten gewendet' }
+        ]
+      };
+      document.getElementById('setup-screen').style.display = 'none';
+      document.getElementById('page-dashboard').style.display = 'block';
+      const statusBadge = document.getElementById('conn-status-badge');
+      const statusText = document.getElementById('conn-status-text');
+      statusBadge.className = 'status-badge status-connected';
+      statusText.textContent = 'Demo-Daten Modus';
+      document.getElementById('last-update-text').textContent = 'Letzte Aktualisierung: Gerade eben';
+      populateSelects(); renderDashboard(); renderTools(); renderHistory(); renderStats();
+    }
+
+    function applyAutoRefresh() {
+      if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+      const sec = parseInt(localStorage.getItem(LS_REFRESH) || '0', 10);
+      if (sec > 0) {
+        autoRefreshTimer = setInterval(() => { fetchJSONBin(true); }, sec * 1000);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const savedBin = localStorage.getItem(LS_BIN_ID) || '';
+      const savedKey = localStorage.getItem(LS_READ_KEY) || '';
+      const savedRefresh = localStorage.getItem(LS_REFRESH) || '0';
+      const savedLow = localStorage.getItem(LS_STOCK_LOW) || '3';
+      const savedCrit = localStorage.getItem(LS_STOCK_CRIT) || '0';
+
+      STOCK_LIMITS.low = Number(savedLow);
+      STOCK_LIMITS.critical = Number(savedCrit);
+
+      document.getElementById('setup-bin-id').value = savedBin;
+      document.getElementById('setup-read-key').value = savedKey;
+      document.getElementById('settings-bin-id').value = savedBin;
+      document.getElementById('settings-read-key').value = savedKey;
+      document.getElementById('settings-auto-refresh').value = savedRefresh;
+      document.getElementById('settings-stock-low').value = STOCK_LIMITS.low;
+      document.getElementById('settings-stock-critical').value = STOCK_LIMITS.critical;
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.getAttribute('data-tab')));
+      });
+      document.querySelectorAll('.kpi-card[data-tab]').forEach(c => {
+        c.addEventListener('click', () => switchTab(c.getAttribute('data-tab')));
+      });
+
+      document.getElementById('btn-refresh').addEventListener('click', () => fetchJSONBin(false));
+      document.getElementById('btn-setup-connect').addEventListener('click', () => {
+        const bin = cleanBinId(document.getElementById('setup-bin-id').value);
+        const key = document.getElementById('setup-read-key').value;
+        if (!bin) { alert('Bitte gib eine gültige BIN-ID ein.'); return; }
+        localStorage.setItem(LS_BIN_ID, bin);
+        localStorage.setItem(LS_READ_KEY, key);
+        document.getElementById('settings-bin-id').value = bin;
+        document.getElementById('settings-read-key').value = key;
+        fetchJSONBin(false);
+      });
+      document.getElementById('btn-setup-demo').addEventListener('click', loadDemoData);
+
+      document.getElementById('tools-search').addEventListener('input', renderTools);
+      document.getElementById('tools-filter-cat').addEventListener('change', renderTools);
+      document.getElementById('tools-filter-status').addEventListener('change', renderTools);
+      document.getElementById('history-search').addEventListener('input', renderHistory);
+      document.getElementById('history-filter-user').addEventListener('change', renderHistory);
+      document.getElementById('history-filter-action').addEventListener('change', renderHistory);
+
+      document.getElementById('btn-export-tools').addEventListener('click', exportToolsCSV);
+      document.getElementById('btn-export-history').addEventListener('click', exportHistoryCSV);
+
+      document.getElementById('settings-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const bin = cleanBinId(document.getElementById('settings-bin-id').value);
+        const key = document.getElementById('settings-read-key').value;
+        const ref = document.getElementById('settings-auto-refresh').value;
+        const low = document.getElementById('settings-stock-low').value;
+        const crit = document.getElementById('settings-stock-critical').value;
+
+        localStorage.setItem(LS_BIN_ID, bin);
+        localStorage.setItem(LS_READ_KEY, key);
+        localStorage.setItem(LS_REFRESH, ref);
+        localStorage.setItem(LS_STOCK_LOW, low);
+        localStorage.setItem(LS_STOCK_CRIT, crit);
+
+        STOCK_LIMITS.low = Number(low);
+        STOCK_LIMITS.critical = Number(crit);
+
+        applyAutoRefresh();
+        fetchJSONBin(false);
+        alert('Einstellungen gespeichert!');
+      });
+
+      document.getElementById('btn-test-conn').addEventListener('click', async () => {
+        const bin = cleanBinId(document.getElementById('settings-bin-id').value);
+        const key = document.getElementById('settings-read-key').value;
+        if (!bin) { alert('Keine BIN-ID angegeben'); return; }
+        const headers = { 'Content-Type': 'application/json' };
+        if (key) { headers['X-Master-Key'] = key; headers['X-Access-Key'] = key; }
+        try {
+          const res = await fetch(`https://api.jsonbin.io/v3/b/${bin}/latest`, { headers });
+          if (res.ok) alert('✅ Verbindung erfolgreich!');
+          else alert(`❌ Fehler: HTTP ${res.status}`);
+        } catch (e) { alert('❌ Verbindungsfehler: ' + e.message); }
+      });
+
+      document.getElementById('btn-disconnect').addEventListener('click', () => {
+        if (confirm('Verbindung zu JSONBin wirklich trennen?')) {
+          localStorage.removeItem(LS_BIN_ID);
+          localStorage.removeItem(LS_READ_KEY);
+          location.reload();
+        }
+      });
+
+      document.getElementById('btn-clear-cache').addEventListener('click', () => {
+        if (confirm('Cache leeren?')) {
+          localStorage.removeItem(LS_CACHE_TOOLS);
+          localStorage.removeItem(LS_CACHE_HISTORY);
+          localStorage.removeItem(LS_CACHE_TIME);
+          alert('Cache geleert.');
+        }
+      });
+
+      document.getElementById('btn-download-html').addEventListener('click', () => {
+        const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'FJK_CNC_Dashboard.html';
+        a.click();
+      });
+
+      document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+      document.getElementById('tool-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'tool-modal') closeModal();
+      });
+
+      applyAutoRefresh();
+      fetchJSONBin(false);
+    });
+  </script>
+</body>
+</html>
